@@ -1,5 +1,6 @@
 const fs = require('fs')
 const {ConvertPDFToTextUtil} = require("./../utils/pdf.utils")
+const {GenerateVectorEmbeddingOfTextUtil} = require("./../utils/openai.utils")
 
 const ConvertLargeTextToChunks = (largeText, chunkSize=400)=>{
 
@@ -41,11 +42,20 @@ const IndexNewPDFController = async (req, res)=>{
 
         // convert pdfText to small small chunk. small small chunk will combinely known as chunks i.e. Array of Chunk
         const chunks = ConvertLargeTextToChunks(pdfText)
-        console.log(chunks, chunks.length)
-
+        chunks.forEach(async (chunk, index)=>{
             // For each chunk iterate
-            // create vector embedding using emebedding model
+            
+            // create vector embedding using emebedding model of the individual chunk
+            const GenerateVectorEmbeddingOfTextUtilResult = await GenerateVectorEmbeddingOfTextUtil(chunk)
+            if(!GenerateVectorEmbeddingOfTextUtilResult.success){
+                return
+            }
+            const {data : embedding} = GenerateVectorEmbeddingOfTextUtilResult
+
             // store the vector emebdiing in vector db i.e Milvus
+            
+            // store the chunk in plain text into the mongoDB
+        })
         
         // we have to store pdf meta info like name, page_no, owner etc in mongoDB
 
