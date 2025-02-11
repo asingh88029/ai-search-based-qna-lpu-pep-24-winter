@@ -50,6 +50,8 @@ const IndexNewPDFController = async (req, res)=>{
         // check for duplicate pdf indexing. pdfName + pdfSize combination should be different
         const CheckPdfDuplicacyServiceResult = await CheckPdfDuplicacyService(pdfName, pdfSize, organizationId)
         if(CheckPdfDuplicacyServiceResult.success){
+            // delete the pdf form the uploads/pdfs folder
+            fs.unlinkSync(pdfPath)
             const err = new Error("PDF is already indexed")
             err.statusCode = 500
             throw err
