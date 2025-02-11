@@ -10,8 +10,11 @@ const EmbeddingsSchema = new mongoose.Schema({
         required : true,
         enum : ["pdf", "webpage"]
     },
-    sourceid : {
+    source_id : {
         type : String,
+    },
+    chunk_no : {
+        type : String
     } 
 })
 

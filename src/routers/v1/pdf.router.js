@@ -1,10 +1,10 @@
 const express = require("express")
 const { IndexNewPDFController } = require("./../../controllers/pdf.controller")
 const {PdfUploadMiddleware} = require("./../../middlewares/multer.middleware")
+const {AuthenticationMiddleware, AuthoriztionMiddlewareGenerator} = require("./../../middlewares/auth.middleware")
 
 const pdfRouter = express.Router()
 
-// TODO : We have to setup Authentication , Authorization middleware
-pdfRouter.post("/new", PdfUploadMiddleware.single('data'), IndexNewPDFController)
+pdfRouter.post("/new", AuthenticationMiddleware, AuthoriztionMiddlewareGenerator("ORG_ADMIN"), PdfUploadMiddleware.single('data'), IndexNewPDFController)
 
 module.exports = pdfRouter

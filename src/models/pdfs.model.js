@@ -18,6 +18,10 @@ const PdfSchema = new mongoose.Schema({
     page_count : {
         type : Number
     },
+    url : {
+        type : String
+    }
+    ,
     is_indexed : {
         type : Boolean,
         default : false
@@ -27,6 +31,6 @@ const PdfSchema = new mongoose.Schema({
     }
 })
 
-const PDFSModel = mongoose.model("Pdfs", PdfSchema)
+const PDFSModel = mongoose.model("pdfs", PdfSchema)
 
 module.exports = PDFSModel

@@ -44,6 +44,28 @@ const IsUserPresentUsingUserIdService = async (userId)=>{
     }
 }
 
+const FetchOrganizationIdUsingTheUserIdService = async (userId)=>{
+    try{
+
+        const user = await USERSModel.findOne({"_id" : userId}).exec()
+
+        if(user){
+            return {
+                success : true,
+                data : user.organizationId
+            }
+        }else{
+            throw new Error("Unable to get user organization details")
+        }
+
+    }catch(err){
+        console.log(`Error in fetchOrganizationIdUsingTheUserIdService with err : ${err}`)
+        return {
+            success : false
+        }
+    }
+}
+
 const CreateNewUserService = async (fullName, email, encryptedPassword, organizationId, organizationRole)=>{
     try{
 
@@ -92,5 +114,6 @@ module.exports = {
     IsUserPresentUsingEmailService,
     IsUserPresentUsingUserIdService,
     CreateNewUserService,
-    DeleteUserByUserIdService
+    DeleteUserByUserIdService,
+    FetchOrganizationIdUsingTheUserIdService
 }
