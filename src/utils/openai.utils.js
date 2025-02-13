@@ -1,4 +1,5 @@
 const axios = require("axios")
+const { model } = require("mongoose")
 require('dotenv').config()
 
 const NODE_ENV = process.env.NODE_ENV
@@ -44,6 +45,55 @@ const GenerateVectorEmbeddingOfTextUtil = async (text)=>{
     }
 }
 
+const GenerateAnswerOfQueryUsingOrginalQueryAndRelevantContextUtil = async (query, relevantChunks)=>{
+    try{
+
+        const message = [
+            {
+              "role": "system",
+              "content": "You are an AI assistant that answers user queries strictly based on the provided context. Do not use external knowledge or make assumptions. If the context does not contain relevant information, respond with 'I'm sorry, but I don't have enough information to answer that.'"
+            },
+            {
+              "role": "user",
+              "content": `User Query: ${query}\n\nRelevant Context: ${relevantChunks.join("\n\n\n")}`
+            }
+        ]
+
+        const data = {
+            model : 'gpt-4o',
+            messages : message,
+            max_tokens : 4000
+        }
+
+        const config = {
+                headers : {
+                    'Authorization' : `Bearer ${OPENAI_KEY}`,
+                    'Content-Type' : 'application/json'
+                }
+        } 
+
+        const apiResponse = await axios.post('https://api.openai.com/v1/chat/completions', data, config)
+
+
+        if(apiResponse.data.choices.length===0){
+            throw new Error("Unable to generate answer for the query")
+        }
+
+        return {
+            success : true,
+            data : apiResponse.data.choices[0].message.content.trim()
+        }
+
+    }catch(err){
+        console.log(`Error in GenerateAnswerOfQueryUsingOrginalQueryAndRelevantContextUtil with err : ${err}`)
+        return {
+            success : false,
+            message : err.message
+        }
+    }
+}
+
 module.exports = {
-    GenerateVectorEmbeddingOfTextUtil
+    GenerateVectorEmbeddingOfTextUtil,
+    GenerateAnswerOfQueryUsingOrginalQueryAndRelevantContextUtil
 }
