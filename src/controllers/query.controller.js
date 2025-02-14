@@ -1,6 +1,7 @@
 const {GenerateVectorEmbeddingOfTextUtil, GenerateAnswerOfQueryUsingOrginalQueryAndRelevantContextUtil} = require("./../utils/openai.utils")
 const {SearchTop5ResultFromVectorDBUtil} = require("./../utils/milvus.utils")
 const {GetTextOfChunkUsingChunkNoSourceAndSourceId} = require("./../services/embedding.service")
+const {GetPDFDetailsUsingItsIdService} = require("./../services/pdf.service")
 
 const QueryController = async (req, res)=>{
     try{
@@ -25,7 +26,9 @@ const QueryController = async (req, res)=>{
         }
         const {data : vectorOfChunksRelatedToQuery} = SearchTop5ResultFromVectorDBUtilResult
 
+        // relevantChunksText[0] and relevantChunksReferences[0] both will be representing the same chunk
         const relevantChunksText = []
+        const relevantChunksReferencesMap = new Map()
 
         // we have to map top 5 vectors with the original text of chunk
         for(let i =0 ; i < vectorOfChunksRelatedToQuery.length ; i++){
@@ -36,12 +39,25 @@ const QueryController = async (req, res)=>{
 
             const [source, sourceId, chunkNumber] = key_id.split("-")
 
+            // fetch text of chunk using chunkNumber, source, sourceId
             const GetTextOfChunkUsingChunkNoSourceAndSourceIdResult = await GetTextOfChunkUsingChunkNoSourceAndSourceId(chunkNumber, source, sourceId)
             if(!GetTextOfChunkUsingChunkNoSourceAndSourceIdResult.success){
                 console.log(`Unable to retrive text of chunk for source ${source}, sourceId ${sourceId} and chunkNumber ${chunkNumber}`)
                 continue
             }
             const {data : text} = GetTextOfChunkUsingChunkNoSourceAndSourceIdResult
+
+            // fetch the reference of the chunk, using the source and sourceId
+            if(source==="pdf"){
+                const GetPDFDetailsUsingItsIdServiceResult = await GetPDFDetailsUsingItsIdService(sourceId)
+                if(!GetPDFDetailsUsingItsIdServiceResult.success){
+                    console.log(`Unable to retrieve the reference of the chunkNo : ${chunkNumber}, source : ${source} and sourceId : ${sourceId}`)
+                }
+                const {data : {name, url}} = GetPDFDetailsUsingItsIdServiceResult
+                if(!relevantChunksReferencesMap.has(sourceId)){
+                    relevantChunksReferencesMap.set(sourceId, {source : "pdf", sourceId : sourceId, name : name, url : url})
+                }
+            } 
 
             relevantChunksText.push(text)
 
@@ -52,11 +68,19 @@ const QueryController = async (req, res)=>{
         if(!GenerateAnswerOfQueryUsingOrginalQueryAndRelevantContextUtilResult.success){
             throw new Error("Unable to generate the answer for the query")
         }
-        const {data} = GenerateAnswerOfQueryUsingOrginalQueryAndRelevantContextUtilResult
+        const {data : queryAnswer} = GenerateAnswerOfQueryUsingOrginalQueryAndRelevantContextUtilResult
+
+        const references = []
+        for(const [key, value] of relevantChunksReferencesMap.entries()){
+            references.push(value)
+        }
 
         res.status(201).json({
             success : true,
-            data : data
+            data : {
+                answer : queryAnswer,
+                references :references
+            }
         })
 
     }catch(err){

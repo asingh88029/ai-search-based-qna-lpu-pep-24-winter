@@ -1,10 +1,47 @@
 const fs = require('fs')
 const {ConvertPDFToTextUtil} = require("./../utils/pdf.utils")
 const {GenerateVectorEmbeddingOfTextUtil} = require("./../utils/openai.utils")
-const {CreateNewPDFEntryService, UpdateTheIndexedInfoOfPDFService, CheckPdfDuplicacyService} = require("./../services/pdf.service")
+const {GetAllIndexedPdfService, CreateNewPDFEntryService, UpdateTheIndexedInfoOfPDFService, CheckPdfDuplicacyService, DeleteIndexedPdfUsingItsIdService} = require("./../services/pdf.service")
 const {FetchOrganizationIdUsingTheUserIdService} = require("./../services/user.service")
-const {CreateNewChunkEntryService} = require("./../services/embedding.service")
-const {StoreVectorEmbeddingOfChunkInMilvusVectorDBUtil} = require("./../utils/milvus.utils")
+const {CreateNewChunkEntryService, DeleteAllChunkTextOfSourceUsingSourceAndSourceIdService} = require("./../services/embedding.service")
+const {StoreVectorEmbeddingOfChunkInMilvusVectorDBUtil, DeleteAllChunksVectorFromVectorDBUtil} = require("./../utils/milvus.utils")
+const {v2: cloudinary} = require('cloudinary')
+require("dotenv").config()
+
+const NODE_ENV = process.env.NODE_ENV
+
+const CLOUDINARY_CLOUD_NAME = process.env[`${NODE_ENV}_CLOUDINARY_CLOUD_NAME`]
+const CLOUDINARY_API_KEY = process.env[`${NODE_ENV}_CLOUDINARY_API_KEY`]
+const CLOUDINARY_API_SECRET = process.env[`${NODE_ENV}_CLOUDINARY_API_SECRET`]
+
+cloudinary.config({
+    cloud_name: CLOUDINARY_CLOUD_NAME, 
+    api_key: CLOUDINARY_API_KEY, 
+    api_secret: CLOUDINARY_API_SECRET
+})
+
+const GetAllIndexedPdfFromMongoDBController = async (req, res)=>{
+    try{
+
+        const GetAllIndexedPdfServiceResult = await GetAllIndexedPdfService()
+        if(!GetAllIndexedPdfServiceResult.success){
+            throw new Error('Unable to fetch any indexed pdf')
+        }
+        const {data} = GetAllIndexedPdfServiceResult
+
+        res.status(200).json({
+            success : true,
+            data : data
+        })
+
+    }catch(err){
+        console.log(`Error in GetAllIndexedPdfFromMongoDBController`)
+        res.status(err.statusCode ? err.statusCode : 500).json({
+            success : false,
+            message : err.message
+        })
+    }
+}
 
 const ConvertLargeTextToChunks = (largeText, chunkSize=400)=>{
 
@@ -66,8 +103,20 @@ const IndexNewPDFController = async (req, res)=>{
         }
         const {numpages : numOfPagesInPdf, info : {Title : pdfTitle, Author : pdfAuthor}, text : pdfText} = pdfConvertResult.data
 
+        let pdfPublicUrl = ""
+        // upload the pdf to the file static storage services like cloudinary or aws s3
+        const cloudinaryUploadResult = await cloudinary.uploader.upload(pdfPath,{
+            resource_type: "raw",
+            access_mode: "public"
+        })
+        if(cloudinaryUploadResult.secure_url){
+            pdfPublicUrl = cloudinaryUploadResult.secure_url
+        }else{
+            console.log(`Unable to upload pdf with name : ${pdfName} to the cloudinary`)
+        }
+
         // we have to store pdf meta info like name, page_no, owner etc in mongoDB
-        const CreateNewPDFEntryServiceResult = await CreateNewPDFEntryService(pdfName, pdfAuthor, organizationId, pdfSize, numOfPagesInPdf)
+        const CreateNewPDFEntryServiceResult = await CreateNewPDFEntryService(pdfName, pdfAuthor, organizationId, pdfSize, numOfPagesInPdf, pdfPublicUrl!==""?pdfPublicUrl:null)
         if(!CreateNewPDFEntryServiceResult.success){
             const err = new Error("Unable to create entry for pdf in pdfs collection of mongoDB")
             err.statusCode = 500
@@ -114,8 +163,6 @@ const IndexNewPDFController = async (req, res)=>{
             console.log("Error while updating indexed info of pdf in mongoDB")
         }
 
-        // upload the pdf to the file static storage services like cloudinary or aws s3
-
         // delete the pdf form the uploads/pdfs folder
         fs.unlinkSync(pdfPath)
 
@@ -135,6 +182,45 @@ const IndexNewPDFController = async (req, res)=>{
     }
 }
 
+const DeleteIndexedPdfController = async (req, res)=>{
+    try{
+
+        const {pdfId : sourceId} = req.params
+        const source = "pdf"
+
+        // delete all the chunks text from embeddings collection of the mongoDB
+        const DeleteAllChunkTextOfSourceUsingSourceAndSourceIdServiceResult = await DeleteAllChunkTextOfSourceUsingSourceAndSourceIdService(source, sourceId)
+        if(!DeleteAllChunkTextOfSourceUsingSourceAndSourceIdServiceResult.success){
+            console.log(`Unable to delete chunks text for source : ${source} and sourceId ${sourceId}`)
+        }
+
+        // delete all the chunks vector from text_embeddings collection of Milvus Vector Database
+        const DeleteAllChunksVectorFromVectorDBUtilResult = await DeleteAllChunksVectorFromVectorDBUtil(source, sourceId)
+        if(!DeleteAllChunksVectorFromVectorDBUtilResult.success){
+            console.log(`Unable to delete chunks vector for source : ${source} and sourceId ${sourceId}`)
+        }
+
+        // delete pdf information from pdfs collection of mongoDB
+        const DeleteIndexedPdfUsingItsIdServiceResult = await DeleteIndexedPdfUsingItsIdService(sourceId)
+        if(!DeleteIndexedPdfUsingItsIdServiceResult.success){
+            console.log(`Unable to delete pdf from pdfs collection of the mongoDB with id ${sourceId}`)
+        }
+
+        res.status(200).json({
+                success : true
+        })
+
+    }catch(err){
+        console.log(`Error in DeleteIndexedPdfController`)
+        res.status(err.statusCode ? err.statusCode : 500).json({
+            success : false,
+            message : err.message
+        })
+    }
+}
+
 module.exports = {
-    IndexNewPDFController
+    GetAllIndexedPdfFromMongoDBController,
+    IndexNewPDFController,
+    DeleteIndexedPdfController,
 }

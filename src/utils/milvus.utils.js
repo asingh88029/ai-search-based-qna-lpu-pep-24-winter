@@ -70,8 +70,35 @@ const SearchTop5ResultFromVectorDBUtil = async (queryVector)=>{
     }
 }
 
+const DeleteAllChunksVectorFromVectorDBUtil = async (source, sourceId)=>{
+    try{
+
+        const deleteChunksVectorResult = await Client.delete({
+            collection_name : "text_embeddings",
+            filter : `key_id like "${source}-${sourceId}-%"`
+        })
+
+        if(deleteChunksVectorResult.delete_cnt==0){
+            throw new Error("Unable to delete chunks vector")
+        }
+
+        return {
+            success : true
+        }
+
+
+    }catch(err){
+        console.log(`Error in DeleteAllChunksVectorFromVectorDBUtil with err : ${err}`)
+        return {
+            success : false,
+            message : err.message
+        }
+    }
+}
+
 module.exports = {
     StoreVectorEmbeddingOfChunkInMilvusVectorDBUtil,
-    SearchTop5ResultFromVectorDBUtil
+    SearchTop5ResultFromVectorDBUtil,
+    DeleteAllChunksVectorFromVectorDBUtil
 }
 

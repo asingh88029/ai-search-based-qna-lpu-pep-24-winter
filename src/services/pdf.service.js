@@ -1,6 +1,29 @@
 const PDFSModel = require("./../models/pdfs.model")
 
-const CreateNewPDFEntryService = async (name, author, organizationId, size, pageCount)=>{
+const GetAllIndexedPdfService = async ()=>{
+    try{
+
+        const PDFs = await PDFSModel.find().exec()
+
+        if(PDFs){
+            return {
+                success : true,
+                data : PDFs
+            }
+        }else{
+            throw new Error('Unable to fetch pdfs from pdfs collection of mongoDB')
+        }
+
+    }catch(err){
+        console.log(`Error in GetAllIndexedPdfService with err : ${err}`)
+        return {
+            success : false,
+            message : err.message
+        }
+    }
+}
+
+const CreateNewPDFEntryService = async (name, author, organizationId, size, pageCount, pdfUrl)=>{
     try{
 
         const PDF = await PDFSModel.create({
@@ -8,7 +31,8 @@ const CreateNewPDFEntryService = async (name, author, organizationId, size, page
             author : author,
             organization : organizationId,
             size : size,
-            page_count : pageCount
+            page_count : pageCount,
+            url : pdfUrl
         })
 
         if(PDF){
@@ -33,8 +57,6 @@ const UpdateTheIndexedInfoOfPDFService = async (pdfId)=>{
     try{
 
         const result = await PDFSModel.findByIdAndUpdate(pdfId, {is_indexed : true,  indexed_at : Date()}).exec()
-
-        console.log(result)
 
         if(!result){
             throw new Error(`Unable to update the indexing info of pdf with pdfId : ${pdfId}`)
@@ -75,8 +97,56 @@ const CheckPdfDuplicacyService = async (name, size, organizationId)=>{
     }
 } 
 
+const GetPDFDetailsUsingItsIdService = async (sourceId)=>{
+    try{
+
+        const pdf = await PDFSModel.findById(sourceId).exec()
+
+        if(!pdf){
+            throw new Error(`unable to get pdf details for the pdf with sourceId : ${sourceId}`)
+        }
+
+        return {
+            success : true,
+            data : pdf
+        }
+
+    }catch(err){
+        console.log(`Error in GetPDFDetailsUsingItsIdService with err : ${err}`)
+        return {
+            success : false,
+            message : err.message
+        }
+    }
+}
+
+const DeleteIndexedPdfUsingItsIdService = async (sourceId)=>{
+    try{
+
+        const deleteResult = await PDFSModel.deleteMany({_id : sourceId}).exec()
+
+        if(!deleteResult){
+            throw new Error(`Unable to delete the pdf with id ${pdfId}`)
+        }
+
+        return {
+            success : true
+        }
+
+    }catch(err){
+        console.log(`Error in DeleteIndexedPdfUsingItsIdService`)
+        return {
+            success : false,
+            message : err.message
+        }
+    }
+}
+
 module.exports = {
+    GetAllIndexedPdfService,
     CreateNewPDFEntryService,
     UpdateTheIndexedInfoOfPDFService,
-    CheckPdfDuplicacyService
+    CheckPdfDuplicacyService,
+    GetPDFDetailsUsingItsIdService,
+    DeleteIndexedPdfUsingItsIdService
 }

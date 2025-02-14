@@ -55,7 +55,29 @@ const GetTextOfChunkUsingChunkNoSourceAndSourceId = async (chunkNumber, source, 
     }
 }
 
+const DeleteAllChunkTextOfSourceUsingSourceAndSourceIdService = async (source, sourceId)=>{
+    try {
+
+        const result = EMBEDDINGSModel.deleteMany({source : source, source_id : sourceId}).exec()
+
+        if(!result){
+            throw new Error(`Unable to delete chunks text of source ${source} and sourceId ${sourceId}`)
+        }
+
+        return {
+            success : true
+        }
+
+    }catch(err){
+        console.log(`Error in DeleteAllChunkTextOfSourceUsingSourceAndSourceIdService with err : ${err}`)
+        return {
+            success : false
+        }
+    }
+}
+
 module.exports = {
    CreateNewChunkEntryService,
-   GetTextOfChunkUsingChunkNoSourceAndSourceId
+   GetTextOfChunkUsingChunkNoSourceAndSourceId,
+   DeleteAllChunkTextOfSourceUsingSourceAndSourceIdService
 }
