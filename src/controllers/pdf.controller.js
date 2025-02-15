@@ -43,7 +43,20 @@ const GetAllIndexedPdfFromMongoDBController = async (req, res)=>{
     }
 }
 
-const ConvertLargeTextToChunks = (largeText, chunkSize=400)=>{
+/***************************************************************************************************************
+ * This function splits large text into small small chunk i.e. chunks
+ * Chunking strategy we are using is Fixed Length Chunk with overlapping
+ * 
+ * @param {string} largeText - Original Text to split
+ * @param {number} chunkSize - Chunk size default is 400 
+ * @param {number} overlappingCount - It will decide how may words will overlap
+ * 
+ * @return {object} - {
+ *      success : true,
+ *      data : ""
+ * }
+***************************************************************************************************************/
+const ConvertLargeTextToChunks = (largeText, chunkSize=400, overlappingCount=100)=>{
 
     // largeText is of 2000 words
     
@@ -52,9 +65,25 @@ const ConvertLargeTextToChunks = (largeText, chunkSize=400)=>{
 
     const chunks = []
 
-    for(let i=0; i < wordArrayLength/chunkSize; i++){ // i = 0 -> i <= 5
-        const startIndex = i*chunkSize
-        const endIndex = startIndex + chunkSize
+    let startIndex
+    let endIndex
+
+    totalChunkCount = Math.floor(wordArrayLength/chunkSize)
+
+    for(let i=0; i < totalChunkCount; i++){ // i = 0 -> i <= 5
+
+        if(i==0){
+            startIndex = i*chunkSize
+        }else{
+            startIndex = endIndex - overlappingCount
+        }
+
+        if(i==totalChunkCount-1){
+            endIndex = wordArrayLength -1
+        }else{
+            endIndex = startIndex + chunkSize
+        }
+        
 
         const chunk = wordArray.slice(startIndex, endIndex).join(" ")
 

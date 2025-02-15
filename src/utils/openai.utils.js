@@ -74,7 +74,6 @@ const GenerateAnswerOfQueryUsingOrginalQueryAndRelevantContextUtil = async (quer
 
         const apiResponse = await axios.post('https://api.openai.com/v1/chat/completions', data, config)
 
-
         if(apiResponse.data.choices.length===0){
             throw new Error("Unable to generate answer for the query")
         }

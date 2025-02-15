@@ -2,12 +2,18 @@ const {GenerateVectorEmbeddingOfTextUtil, GenerateAnswerOfQueryUsingOrginalQuery
 const {SearchTop5ResultFromVectorDBUtil} = require("./../utils/milvus.utils")
 const {GetTextOfChunkUsingChunkNoSourceAndSourceId} = require("./../services/embedding.service")
 const {GetPDFDetailsUsingItsIdService} = require("./../services/pdf.service")
+const {CreateNewQueryService, UpdateTheFollowupQueryService} = require("./../services/queries.service")
 
 const QueryController = async (req, res)=>{
     try{
 
-        // get query
-        const {query} = req.body
+        const startTime = new Date().getTime()
+
+        // get query, qyeryId
+        const {query, queryId} = req.body
+
+        // if we are getting queryId, thats mean query is followup
+        // for the followup query, lets retriee the perevious context from the mongoDB
 
         // convert query into the vector embedding
         const GenerateVectorEmbeddingOfTextUtilResult = await GenerateVectorEmbeddingOfTextUtil(query)
@@ -75,9 +81,30 @@ const QueryController = async (req, res)=>{
             references.push(value)
         }
 
+        const endTime = new Date().getTime()
+
+        const processingTime = endTime - startTime
+
+        const askedAt = new Date(startTime)
+
+        let queryIdFromDb 
+
+        // we have to update the information in mongoDB
+        // for the new query, we will create a new entry in mongoDB
+        if(!queryId){
+            const CreateNewQueryServiceResult = await CreateNewQueryService(query, queryAnswer, processingTime, askedAt)
+            if(!CreateNewQueryServiceResult.success){
+                throw new Error('Unable to create query in database')
+            }
+            const {data : {_id}} = CreateNewQueryServiceResult
+            queryIdFromDb = _id
+        }
+        // for the followup query, we will update the existing query info in mongoDB
+
         res.status(201).json({
             success : true,
             data : {
+                queryId : queryIdFromDb,
                 answer : queryAnswer,
                 references :references
             }
