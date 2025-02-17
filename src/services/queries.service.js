@@ -1,5 +1,28 @@
 const QUERIESModel = require("./../models/queries.model");
 
+const GetPreviousContextOfQueryUsingItsIdService = async (queryId)=>{
+    try{
+
+        const queriesResult = await QUERIESModel.findOne({_id : queryId}).exec()
+
+        if(!queriesResult){
+            throw new Error(`Unable to retrieve the queries for the queryId ${queryId}`)
+        }
+
+        return {
+            success : true,
+            data : queriesResult.queries
+        }
+
+    }catch(err){
+        console.log(`Error in GetPreviousContextOfQueryUsingItsIdService with err : ${err}`)
+        return {
+            success : false,
+            message : err.message
+        }
+    }
+}
+
 const CreateNewQueryService = async (query, answer, processingTime, askedAt) => {
     try {
         const QUERIESResult = await QUERIESModel.create({
@@ -61,6 +84,7 @@ const UpdateTheFollowupQueryService = async (queryId, followupQuery, followupAns
 };
 
 module.exports = {
+    GetPreviousContextOfQueryUsingItsIdService,
     CreateNewQueryService,
     UpdateTheFollowupQueryService
 };
