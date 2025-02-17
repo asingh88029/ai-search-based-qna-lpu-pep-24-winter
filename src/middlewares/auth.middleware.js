@@ -1,3 +1,4 @@
+const { Roles } = require("@zilliz/milvus2-sdk-node")
 const jwt = require("jsonwebtoken")
 require('dotenv').config()
 const NODE_ENV = process.env.NODE_ENV
@@ -29,10 +30,10 @@ const AuthenticationMiddleware = async (req, res, next)=>{
     }
 }
 
-const AuthoriztionMiddlewareGenerator = (role)=>{
+const AuthoriztionMiddlewareGenerator = (roles)=>{
     return async (req, res, next)=>{
        try{
-            if(req.role===role){
+            if(roles.includes(req.role)){
                 next()
             }else{
                 const err = new Error(`Unauthorized Acces`)
@@ -40,7 +41,7 @@ const AuthoriztionMiddlewareGenerator = (role)=>{
                 throw err
             }
        }catch(err){
-            console.log(`Error in ${role}AuthoriztionMiddleware with err : ${err}`)
+            console.log(`Error in ${roles.join(", ")} AuthoriztionMiddleware with err : ${err}`)
             res.status(err.statusCode ? err.statusCode : 500).json({
                 success : false,
                 error : err.message

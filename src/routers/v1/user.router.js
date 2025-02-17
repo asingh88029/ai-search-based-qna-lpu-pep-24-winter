@@ -4,6 +4,6 @@ const {AuthenticationMiddleware, AuthoriztionMiddlewareGenerator} = require('./.
 
 const UserRouter = express.Router()
 
-UserRouter.delete("/delete/:userId", AuthenticationMiddleware, AuthoriztionMiddlewareGenerator("ORG_ADMIN"), DeleteUserByUserIdController)
+UserRouter.delete("/delete/:userId", AuthenticationMiddleware, AuthoriztionMiddlewareGenerator(["ORG_ADMIN"]), DeleteUserByUserIdController)
 
 module.exports = UserRouter

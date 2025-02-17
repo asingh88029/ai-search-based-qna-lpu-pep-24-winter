@@ -5,10 +5,10 @@ const {AuthenticationMiddleware, AuthoriztionMiddlewareGenerator} = require("./.
 
 const pdfRouter = express.Router()
 
-pdfRouter.get("/all", AuthenticationMiddleware, AuthoriztionMiddlewareGenerator("ORG_ADMIN","ORG_MEMBER"), GetAllIndexedPdfFromMongoDBController)
+pdfRouter.get("/all", AuthenticationMiddleware, AuthoriztionMiddlewareGenerator(["ORG_ADMIN","ORG_MEMBER"]), GetAllIndexedPdfFromMongoDBController)
 
-pdfRouter.post("/new", AuthenticationMiddleware, AuthoriztionMiddlewareGenerator("ORG_ADMIN","ORG_MEMBER"), PdfUploadMiddleware.single('data'), IndexNewPDFController)
+pdfRouter.post("/new", AuthenticationMiddleware, AuthoriztionMiddlewareGenerator(["ORG_ADMIN","ORG_MEMBER"]), PdfUploadMiddleware.single('data'), IndexNewPDFController)
 
-pdfRouter.delete("/delete/:pdfId", AuthenticationMiddleware, AuthoriztionMiddlewareGenerator("ORG_ADMIN"), DeleteIndexedPdfController)
+pdfRouter.delete("/delete/:pdfId", AuthenticationMiddleware, AuthoriztionMiddlewareGenerator(["ORG_ADMIN"]), DeleteIndexedPdfController)
 
 module.exports = pdfRouter
