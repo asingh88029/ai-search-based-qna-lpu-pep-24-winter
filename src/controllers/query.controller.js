@@ -2,6 +2,7 @@ const {GenerateVectorEmbeddingOfTextUtil, GenerateAnswerOfQueryUsingOrginalQuery
 const {SearchTop5ResultFromVectorDBUtil} = require("./../utils/milvus.utils")
 const {GetTextOfChunkUsingChunkNoSourceAndSourceId} = require("./../services/embedding.service")
 const {GetPDFDetailsUsingItsIdService} = require("./../services/pdf.service")
+const {GetWebpageDetailsUsingItsIdService} = require("./../services/webpage.service")
 const {GetPreviousContextOfQueryUsingItsIdService, CreateNewQueryService, UpdateTheFollowupQueryService} = require("./../services/queries.service")
 
 const QueryController = async (req, res)=>{
@@ -93,7 +94,16 @@ const QueryController = async (req, res)=>{
                 if(!relevantChunksReferencesMap.has(sourceId)){
                     relevantChunksReferencesMap.set(sourceId, {source : "pdf", sourceId : sourceId, name : name, url : url})
                 }
-            } 
+            }else if(source==="webpage"){
+                const GetWebpageDetailsUsingItsIdServiceResult = await GetWebpageDetailsUsingItsIdService(sourceId)
+                if(!GetWebpageDetailsUsingItsIdServiceResult.success){
+                    console.log(`Unable to retrieve the reference of the chunkNo : ${chunkNumber}, source : ${source} and sourceId : ${sourceId}`)
+                }
+                const {data : {name, url}} = GetWebpageDetailsUsingItsIdServiceResult
+                if(!relevantChunksReferencesMap.has(sourceId)){
+                    relevantChunksReferencesMap.set(sourceId, {source : "webpage", sourceId : sourceId, name : name, url : url})
+                }
+            }
 
             relevantChunksText.push(text)
 
